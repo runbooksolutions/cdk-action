@@ -4,7 +4,7 @@ name: Push on main
 on:
   push:
     branches:
-      - main
+      - '**'
 
 jobs:
   # Use Release-Please to detect version changes and take appropriate actions
@@ -14,6 +14,8 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    outputs:
+        release-created: ${{ steps.release-please.outputs.release-created }}
     steps:
       - uses: actions/create-github-app-token@v1
         id: app-token
@@ -34,6 +36,7 @@ jobs:
       release-please
     permissions:
       contents: write
+    if: ${{ needs.release-please.outputs.release-created  == 'false' }}
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
@@ -51,5 +54,6 @@ jobs:
 
       - name: Commit Dist Folder
         run: |
+            git add dist/**/**
             git commit dist/**/** -m "chore(main): npm run build"
             git push
