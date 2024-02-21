@@ -5,36 +5,36 @@ on: push
 
 jobs:
   # Use Release-Please to detect version changes and take appropriate actions
-#   release-please:
-#     name: Release Please
-#     runs-on: ubuntu-latest
-#     if: ${{ github.ref == 'refs/heads/main' }}
-#     permissions:
-#       contents: write
-#       pull-requests: write
-#     outputs:
-#         release-created: ${{ steps.release-please.outputs.release-created }}
-#     steps:
-#       - uses: actions/create-github-app-token@v1
-#         id: app-token
-#         with:
-#           app-id: ${{ secrets.BOT_ID }}
-#           private-key: ${{ secrets.BOT_KEY }}
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' }}
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+        release-created: ${{ steps.release-please.outputs.release-created }}
+    steps:
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ secrets.BOT_ID }}
+          private-key: ${{ secrets.BOT_KEY }}
 
-#       - uses: google-github-actions/release-please-action@v4
-#         id: release-please
-#         with:
-#           token: ${{ steps.app-token.outputs.token }}
-#           release-type: node
+      - uses: google-github-actions/release-please-action@v4
+        id: release-please
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          release-type: node
       
   build:
     name: Build
     runs-on: ubuntu-latest
-    # needs: 
-    #   release-please
+    needs: 
+      release-please
     permissions:
       contents: write
-    # if: ${{ always() && needs.release-please.outputs.release-created  == 'false' }}
+    if: ${{ always() && (needs.release-please.outputs.release-created  == 'false' || needs.release-please.outputs.release-created == null) }}
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
@@ -52,6 +52,8 @@ jobs:
 
       - name: Commit Dist Folder
         run: |
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add dist/**/**
             git commit dist/**/** -m "chore(main): npm run build"
             git push
