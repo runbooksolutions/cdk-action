@@ -1,0 +1,33 @@
+name: 'CDK Action'
+description: 'Runs an AWS CDK command and provides results in json format'
+author: 'Sniper7Kills LLC'
+
+# Add your action's branding here. This will appear on the GitHub Marketplace.
+# branding:
+  # icon: 'heart'
+  # color: 'red'
+
+# Define your inputs here.
+inputs:
+  install_cdk:
+    description: 'If the action needs to install cdk or if it is already globally'
+    required: false
+    default: true
+  cdk_command:
+    description: 'The CDK command to run'
+    required: true
+    default: 'diff'
+  cdk_arguments:
+    description: 'The arguments to pass to CDK'
+    required: false
+    default:
+      --no-change-set
+
+# Define your outputs here.
+outputs:
+  time:
+    description: 'Your output description here'
+
+runs:
+  using: node20
+  main: dist/index.js

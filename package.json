@@ -1,0 +1,33 @@
+{
+  "name": "@runbooksolutions/cdk-action",
+  "version": "1.0.0",
+  "description": "A Github Action that will preform a CDK operation and provides JSON output with result data.",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "jest",
+    "build": "tsc",
+    "watch": "tsc -w"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/runbooksolutions/cdk-action.git"
+  },
+  "author": "Sniper7Kills LLC",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/runbooksolutions/cdk-action/issues"
+  },
+  "homepage": "https://github.com/runbooksolutions/cdk-action#readme",
+  "dependencies": {
+    "@actions/core": "^1.10.1",
+    "@actions/github": "^6.0.0"
+  },
+  "devDependencies": {
+    "@actions/exec": "^1.1.1",
+    "aws-cdk-lib": "^2.129.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
