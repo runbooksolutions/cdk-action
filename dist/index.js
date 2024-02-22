@@ -26030,20 +26030,23 @@ function run() {
             else
                 response.markdown += '✅ ';
             response.markdown += 'CDK Action Results\n\n';
-            response.markdown += '**Command:** ' + response.command + '\n\n';
+            response.markdown += '**Command:** `' + response.command + '`\n\n';
             response.markdown += '**Results:**\n\n';
             response.markdown += markdown.generateMarkdownDetail('Full Command Results', response.raw);
             response.markdown += '\n\n';
             // Preform command specific processing
-            if (action_inputs.command_specific_processing) {
+            if (action_inputs.command_specific_output) {
                 switch (action_inputs.cdk_command) {
                     case input_1.CDK_COMMAND.diff:
+                        core.debug("Processing Diff");
                         response = diff.process(response);
                         response = diff.markdown(response);
                         break;
                     case input_1.CDK_COMMAND.deploy:
                         //response = processDeployResponse(response)
                         break;
+                    default:
+                        core.error("No Command Specific Processing");
                 }
             }
             // Turn any string arrays into concated strings
@@ -26097,6 +26100,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.markdown = exports.processStacks = exports.process = void 0;
+const core = __importStar(__nccwpck_require__(2186));
 const markdownUtils = __importStar(__nccwpck_require__(2811));
 function process(response) {
     let diffResponse = Object.assign({ stacks: [] }, response);
@@ -26114,9 +26118,14 @@ function processStacks(raw) {
     let current_stack_section = null;
     raw.forEach(line => {
         // Check if we reached the count of stacks with differences
-        if (line.match(/^✨  Number of stacks with differences: (\d+)/)) {
+        let end_check = line.match(/^✨  Number of stacks with differences: (\d+)/);
+        if (end_check) {
             // Save the previous stack if it exists
             if (current_stack) {
+                // Save the previous section if it exists
+                if (current_stack_section) {
+                    current_stack.sections.push(current_stack_section);
+                }
                 stacks.push(current_stack);
             }
             current_stack_name = null;
@@ -26129,6 +26138,7 @@ function processStacks(raw) {
         // Check if the line matches the start of a new stack
         let stack_check = line.match(/^Stack (\w+)/);
         if (stack_check) {
+            core.debug("Found new stack: " + stack_check[1]);
             // Save the previous stack if it exists
             if (current_stack) {
                 stacks.push(current_stack);
@@ -26146,6 +26156,7 @@ function processStacks(raw) {
         //let section_check = line.match(/^(IAM Statement Changes|IAM Policy Changes|Parameters|Resources|Conditions|Resources|Outputs|Other Changes)$/)
         let section_check = line.match(/^([^Stack]([\w ]+))$/);
         if (section_check) {
+            core.debug("Found new section: [" + (current_stack === null || current_stack === void 0 ? void 0 : current_stack.name) + "] " + section_check[1]);
             // Save the previous section if it exists
             if (current_stack_section) {
                 current_stack === null || current_stack === void 0 ? void 0 : current_stack.sections.push(current_stack_section);
@@ -26252,7 +26263,7 @@ function getInputs() {
         required: false,
         trimWhitespace: true,
     });
-    const command_specific_processing = core.getBooleanInput('command_specific_output');
+    const command_specific_output = core.getBooleanInput('command_specific_output');
     // Check that cdk_command is valid
     if (!Object.values(CDK_COMMAND).includes(cdk_command)) {
         throw new Error(`Invalid cdk_command: ${cdk_command}`);
@@ -26268,7 +26279,7 @@ function getInputs() {
         install_cdk: install_cdk === undefined ? true : install_cdk,
         cdk_command: cdk_command,
         cdk_arguments: cdk_arguments,
-        command_specific_processing: command_specific_processing === undefined ? false : command_specific_processing,
+        command_specific_output: command_specific_output === undefined ? false : command_specific_output,
     };
     core.debug(`Inputs: ${JSON.stringify(inputs)}`);
     return inputs;
