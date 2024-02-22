@@ -8,6 +8,12 @@ export function process_diff_log(response: CDKDiffResponse): CDKDiffResponse {
 
     let current_section: string | null = null;
 
+    const non_markdown_keys = [
+        'raw',
+        'stack_name',
+        'markdown'
+    ];
+
     // Iterate though each line in the raw log
     response.raw.split("\n").forEach(line => {
         const end_check = line.match(/^✨  Number of stacks with differences:/)
@@ -59,11 +65,11 @@ export function process_diff_log(response: CDKDiffResponse): CDKDiffResponse {
             core.debug(`Found section: ${current_section}`)
             current_stack[current_section] = {
                 name: section_check[1],
-                raw: [] as string[]
+                raw: ''
             } as StackDiffSection
         }
         if (current_stack && current_section) {
-            (current_stack[current_section] as StackDiffSection).raw.push(line)
+            (current_stack[current_section] as StackDiffSection).raw += line + "\n"
         }
     });
 
@@ -72,8 +78,68 @@ export function process_diff_log(response: CDKDiffResponse): CDKDiffResponse {
         stacks.push(current_stack)
     }
 
+    // Add a Markdown element for each stack
+    stacks.forEach(stack => {
+        stack.markdown = '## Stack: ' + stack.stack_name + '\n\n'
+        stack.markdown += '<details>\n<summary>View Stack Diff</summary>\n\n```diff\n'
+        stack.markdown += stack.raw.trimEnd()
+        stack.markdown +='\n```\n\n</details>\n\n'
+
+        // Add a markdown element for each section in the stack
+        for (const key in stack) {
+            if (non_markdown_keys.includes(key)) continue;
+            const diff_section = (stack[key] as StackDiffSection);
+
+            diff_section.markdown = '<details>\n<summary>'
+            
+            // IAM sections get police lights...
+            if (diff_section.name.toLowerCase().includes('iam')) {
+                diff_section.markdown += '🚨' + diff_section.name + '🚨'
+            } else {
+                diff_section.markdown += diff_section.name
+            }
+            
+            diff_section.markdown += '</summary>\n\n```diff\n'
+            diff_section.markdown += diff_section.raw.trimEnd()
+            diff_section.markdown += '\n```\n\n</details>'
+        }
+    })
+
     // Save the stacks to the response
     response.stacks = stacks;
+
+    // Add a markdown element for the diff summary
+    // Action Title
+    response.markdown = '# '
+    // Emoji for success/failure
+    if (response.error) {
+        response.markdown += '❌ '
+    } else {
+        response.markdown += '✅ '
+    }
+    response.markdown += 'CDK Action\n\n'
+    // What Command Was Run
+    response.markdown += '**Command:** ' + response.command + '\n\n'
+    // Full Command Output
+    response.markdown += '<details>\n'
+    response.markdown += '<summary>Full Command Output</summary>\n\n'
+    response.markdown += '```diff\n'
+    response.markdown += response.raw.trimEnd()
+    response.markdown += '\n```\n\n'
+    response.markdown += '</details>\n\n'
+
+    // Add a markdown element for each stack
+    stacks.forEach(stack => {
+        response.markdown += '## Stack: '
+        response.markdown += stack.stack_name + '\n\n'
+        response.markdown += stack.markdown + '\n\n'
+        // Add a markdown element for each section in the stack
+        response.markdown += '**Sections:**\n'
+        for (const key in stack) {
+            if (non_markdown_keys.includes(key)) continue;
+            response.markdown += stack[key].markdown + '\n\n'
+        }
+    })
 
     // Return the response
     return response;

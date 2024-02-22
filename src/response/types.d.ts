@@ -6,6 +6,7 @@ interface CDKResponse implements Response {
     command: string | null,
     raw: string = '',
     error: boolean = false,
+    markdown?: string = '',
 } 
 
 interface CDKDiffResponse extends CDKResponse {
@@ -19,5 +20,5 @@ interface StackDiff extends JSONResponse {
 
 interface StackDiffSection extends JSONResponse{
     name: string;
-    raw: string[];
+    raw: string;
 }

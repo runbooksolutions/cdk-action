@@ -3,6 +3,21 @@ import * as exec from '@actions/exec'
 import * as fs from 'fs'
 import { process_diff_log } from './response/diff';
 
+// a function that will take an object and recursivly join any string[] type values
+function flatten_object(obj: any): CDKResponse {
+    let flattened: {[key: string]: any} = {}
+    for (let key in obj) {
+        if (typeof obj[key] === 'string') {
+            flattened[key] = obj[key]
+        } else if (typeof obj[key] === 'object') {
+            flattened = {...flattened, ...flatten_object(obj[key])}
+        }
+        // if obj[key] == string[]
+        // flattened[key] = obj[key].join('\n')
+    }
+    return flattened as CDKResponse
+}
+
 /**
  * The main function for the action.
  * @returns {Promise<void>} Resolves when the action is complete.
@@ -78,12 +93,14 @@ export async function run(): Promise<void> {
     switch(user_cdk_command) {
         case 'diff':
             cdk_response=process_diff_log(cdk_response as CDKDiffResponse)
-            //core.setOutput("stacks", JSON.stringify((cdk_response as CDKDiffResponse).stacks))
             break;
         default:
-            throw new Error(`Unsupported CDK Command: ${user_cdk_command}`)
+            throw new Error(`You managed to run a command that wasn't supported.`)
             break;
     }
+
+    // Flatten the response
+    cdk_response = flatten_object(cdk_response)
 
     // Iterate though each key of the cdk_response and set the output
     Object.entries(cdk_response).forEach(([key, value]) => {
