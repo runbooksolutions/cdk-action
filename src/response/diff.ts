@@ -90,7 +90,14 @@ export function process_diff_log(response: CDKDiffResponse): CDKDiffResponse {
             if (non_markdown_keys.includes(key)) continue;
             const diff_section = (stack[key] as StackDiffSection);
 
-            diff_section.markdown = '<details>\n<summary>'
+            diff_section.markdown = '<details'
+
+            // IAM sections are open by default
+            if (diff_section.name.toLowerCase().includes('iam')) {
+                diff_section.markdown += ' open'
+            }
+            
+            diff_section.markdown += '>\n<summary>'
             
             // IAM sections get police lights...
             if (diff_section.name.toLowerCase().includes('iam')) {
@@ -130,8 +137,6 @@ export function process_diff_log(response: CDKDiffResponse): CDKDiffResponse {
 
     // Add a markdown element for each stack
     stacks.forEach(stack => {
-        response.markdown += '## Stack: '
-        response.markdown += stack.stack_name + '\n\n'
         response.markdown += stack.markdown + '\n\n'
         // Add a markdown element for each section in the stack
         response.markdown += '**Sections:**\n'
