@@ -25978,6 +25978,21 @@ exports.run = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 const diff_1 = __nccwpck_require__(841);
+// a function that will take an object and recursivly join any string[] type values
+function flatten_object(obj) {
+    let flattened = {};
+    for (let key in obj) {
+        if (typeof obj[key] === 'string') {
+            flattened[key] = obj[key];
+        }
+        else if (typeof obj[key] === 'object') {
+            flattened = Object.assign(Object.assign({}, flattened), flatten_object(obj[key]));
+        }
+        // if obj[key] == string[]
+        // flattened[key] = obj[key].join('\n')
+    }
+    return flattened;
+}
 /**
  * The main function for the action.
  * @returns {Promise<void>} Resolves when the action is complete.
@@ -26044,12 +26059,13 @@ function run() {
             switch (user_cdk_command) {
                 case 'diff':
                     cdk_response = (0, diff_1.process_diff_log)(cdk_response);
-                    //core.setOutput("stacks", JSON.stringify((cdk_response as CDKDiffResponse).stacks))
                     break;
                 default:
-                    throw new Error(`Unsupported CDK Command: ${user_cdk_command}`);
+                    throw new Error(`You managed to run a command that wasn't supported.`);
                     break;
             }
+            // Flatten the response
+            cdk_response = flatten_object(cdk_response);
             // Iterate though each key of the cdk_response and set the output
             Object.entries(cdk_response).forEach(([key, value]) => {
                 core.setOutput(key, JSON.stringify(value));
@@ -26103,6 +26119,11 @@ function process_diff_log(response) {
     let current_stack_name = null;
     let current_stack = null;
     let current_section = null;
+    const non_markdown_keys = [
+        'raw',
+        'stack_name',
+        'markdown'
+    ];
     // Iterate though each line in the raw log
     response.raw.split("\n").forEach(line => {
         const end_check = line.match(/^✨  Number of stacks with differences:/);
@@ -26152,19 +26173,76 @@ function process_diff_log(response) {
             core.debug(`Found section: ${current_section}`);
             current_stack[current_section] = {
                 name: section_check[1],
-                raw: []
+                raw: ''
             };
         }
         if (current_stack && current_section) {
-            current_stack[current_section].raw.push(line);
+            current_stack[current_section].raw += line + "\n";
         }
     });
     // Save the last stack
     if (current_stack) {
         stacks.push(current_stack);
     }
+    // Add a Markdown element for each stack
+    stacks.forEach(stack => {
+        stack.markdown = '## Stack: ' + stack.stack_name + '\n\n';
+        stack.markdown += '<details>\n<summary>View Stack Diff</summary>\n\n```diff\n';
+        stack.markdown += stack.raw.trimEnd();
+        stack.markdown += '\n```\n\n</details>\n\n';
+        // Add a markdown element for each section in the stack
+        for (const key in stack) {
+            if (non_markdown_keys.includes(key))
+                continue;
+            const diff_section = stack[key];
+            diff_section.markdown = '<details>\n<summary>';
+            // IAM sections get police lights...
+            if (diff_section.name.toLowerCase().includes('iam')) {
+                diff_section.markdown += '🚨' + diff_section.name + '🚨';
+            }
+            else {
+                diff_section.markdown += diff_section.name;
+            }
+            diff_section.markdown += '</summary>\n\n```diff\n';
+            diff_section.markdown += diff_section.raw.trimEnd();
+            diff_section.markdown += '\n```\n\n</details>';
+        }
+    });
     // Save the stacks to the response
     response.stacks = stacks;
+    // Add a markdown element for the diff summary
+    // Action Title
+    response.markdown = '# ';
+    // Emoji for success/failure
+    if (response.error) {
+        response.markdown += '❌ ';
+    }
+    else {
+        response.markdown += '✅ ';
+    }
+    response.markdown += 'CDK Action\n\n';
+    // What Command Was Run
+    response.markdown += '**Command:** ' + response.command + '\n\n';
+    // Full Command Output
+    response.markdown += '<details>\n';
+    response.markdown += '<summary>Full Command Output</summary>\n\n';
+    response.markdown += '```diff\n';
+    response.markdown += response.raw.trimEnd();
+    response.markdown += '\n```\n\n';
+    response.markdown += '</details>\n\n';
+    // Add a markdown element for each stack
+    stacks.forEach(stack => {
+        response.markdown += '## Stack: ';
+        response.markdown += stack.stack_name + '\n\n';
+        response.markdown += stack.markdown + '\n\n';
+        // Add a markdown element for each section in the stack
+        response.markdown += '**Sections:**\n';
+        for (const key in stack) {
+            if (non_markdown_keys.includes(key))
+                continue;
+            response.markdown += stack[key].markdown + '\n\n';
+        }
+    });
     // Return the response
     return response;
 }
