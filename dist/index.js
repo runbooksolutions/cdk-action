@@ -25936,7 +25936,7 @@ exports["default"] = _default;
 
 /***/ }),
 
-/***/ 399:
+/***/ 6144:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -25977,22 +25977,11 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
-const diff_1 = __nccwpck_require__(841);
-// a function that will take an object and recursivly join any string[] type values
-function flatten_object(obj) {
-    let flattened = {};
-    for (let key in obj) {
-        if (typeof obj[key] === 'string') {
-            flattened[key] = obj[key];
-        }
-        else if (typeof obj[key] === 'object') {
-            flattened = Object.assign(Object.assign({}, flattened), flatten_object(obj[key]));
-        }
-        // if obj[key] == string[]
-        // flattened[key] = obj[key].join('\n')
-    }
-    return flattened;
-}
+const input_1 = __nccwpck_require__(5073);
+const markdown = __importStar(__nccwpck_require__(2811));
+const responseUtils = __importStar(__nccwpck_require__(7201));
+// Diffs
+const diff = __importStar(__nccwpck_require__(7145));
 /**
  * The main function for the action.
  * @returns {Promise<void>} Resolves when the action is complete.
@@ -26000,90 +25989,85 @@ function flatten_object(obj) {
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            // Valid AWS CDK commands that are supported
-            const valid_commands = [
-                // 'list',
-                // 'synthesize',
-                // 'deploy',
-                'diff',
-                // 'destroy',
-                // 'doctor',
-            ];
-            // Get the CDK command from the user input and validate it.  If it is not valid, throw an error.
-            const user_cdk_command = core.getInput('cdk_command');
-            if (!valid_commands.includes(user_cdk_command)) {
-                throw new Error(`Non-Supported CDK command: ${user_cdk_command}`);
-            }
-            // Prep our response:
-            let cdk_response = {
-                command: null,
-                raw: '',
-                error: false
-            };
-            const install_cdk = core.getBooleanInput('install_cdk');
-            if (install_cdk) {
+            // Get our Input
+            const action_inputs = (0, input_1.getInputs)();
+            // Install CDK if required
+            if (action_inputs.install_cdk) {
                 core.debug("Install CDK");
                 yield exec.exec('npm', ['install', '-g', 'aws-cdk']);
             }
-            // Try running the CDK command
-            const cdk_out = [];
+            // Prepare the response
+            let response = {
+                command: 'cdk ' + action_inputs.cdk_command + ' ' + action_inputs.cdk_arguments.join(' '),
+                error: false,
+                raw: []
+            };
+            // Run the CDK command
             try {
-                const cdk_arguments = core.getInput('cdk_arguments').split(" ");
-                core.debug("Running CDK Command: " + user_cdk_command + " " + cdk_arguments.join(' '));
-                cdk_response.command = user_cdk_command + " " + cdk_arguments.join(' ');
-                // Capture stdOut and stdErr
+                // Debug Statement
+                core.debug("Running CDK Command: " + action_inputs.cdk_command + " " + action_inputs.cdk_arguments.join(' '));
+                // Setup the stdout and stderr listeners
                 const options = {
                     listeners: {
-                        stdout: (data) => {
-                            cdk_out.push(data.toString());
-                        },
-                        stderr: (data) => {
-                            cdk_out.push(data.toString());
-                        }
-                    },
+                        stdout: (data) => { response.raw.push(data.toString()); },
+                        stderr: (data) => { response.raw.push(data.toString()); },
+                    }
                 };
-                // Run the CDK command
-                yield exec.exec('cdk', [user_cdk_command, ...cdk_arguments], options);
+                // Now we can actually run the cdk command
+                yield exec.exec('cdk', [action_inputs.cdk_command, ...action_inputs.cdk_arguments], options);
             }
             catch (error) {
-                core.debug("CDK Command Failed\n===\n===");
-                core.debug(cdk_out.join("\\n").trimEnd());
-                cdk_response.error = true;
-                cdk_response.raw = cdk_out.join("\n").trimEnd();
-                core.setOutput("key", "value");
-                throw new Error('CDK Failed with an Error');
+                // We encountered an error, lets handle it.
+                core.debug("CDK Command Failed");
+                core.debug(response.raw.join('\n'));
+                response.error = true;
             }
-            // Set the Response
-            cdk_response.raw = cdk_out.join("\n").trimEnd();
-            // Command Completed; Process the results.
-            switch (user_cdk_command) {
-                case 'diff':
-                    cdk_response = (0, diff_1.process_diff_log)(cdk_response);
-                    break;
-                default:
-                    throw new Error(`You managed to run a command that wasn't supported.`);
-                    break;
+            // Generate the initial command markdown
+            response.markdown = '# ';
+            // emoji for status
+            if (response.error)
+                response.markdown += '❌ ';
+            else
+                response.markdown += '✅ ';
+            response.markdown += 'CDK Action Results\n\n';
+            response.markdown += '**Command:** ' + response.command + '\n\n';
+            response.markdown += '**Results:**\n\n';
+            response.markdown += markdown.generateMarkdownDetail('Full Command Results', response.raw);
+            response.markdown += '\n\n';
+            // Preform command specific processing
+            if (action_inputs.command_specific_processing) {
+                switch (action_inputs.cdk_command) {
+                    case input_1.CDK_COMMAND.diff:
+                        response = diff.process(response);
+                        response = diff.markdown(response);
+                        break;
+                    case input_1.CDK_COMMAND.deploy:
+                        //response = processDeployResponse(response)
+                        break;
+                }
             }
-            // Flatten the response
-            cdk_response = flatten_object(cdk_response);
-            // Iterate though each key of the cdk_response and set the output
-            Object.entries(cdk_response).forEach(([key, value]) => {
-                core.setOutput(key, JSON.stringify(value));
+            // Turn any string arrays into concated strings
+            response = responseUtils.jsonResponseStringArrayConcat(response);
+            // map each key of response to an output and stringify the value
+            Object.keys(response).forEach(key => {
+                core.setOutput(key, JSON.stringify(response[key]));
             });
         }
         catch (error) {
-            // Fail the workflow run if an error occurs
+            // Fail the workflow run if an error occurs we don't already catch
             if (error instanceof Error)
                 core.setFailed(error.message);
         }
     });
 }
 exports.run = run;
+// Run our Actions
+run();
 
 
 /***/ }),
 
-/***/ 841:
+/***/ 7145:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -26112,33 +26096,38 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.process_diff_log = void 0;
-const core = __importStar(__nccwpck_require__(2186));
-function process_diff_log(response) {
+exports.markdown = exports.processStacks = exports.process = void 0;
+const markdownUtils = __importStar(__nccwpck_require__(2811));
+function process(response) {
+    let diffResponse = Object.assign({ stacks: [] }, response);
+    const stacks = processStacks(response.raw);
+    diffResponse.stacks = stacks;
+    // Process response.raw
+    return diffResponse;
+}
+exports.process = process;
+function processStacks(raw) {
     const stacks = [];
     let current_stack_name = null;
     let current_stack = null;
-    let current_section = null;
-    const non_markdown_keys = [
-        'raw',
-        'stack_name',
-        'markdown'
-    ];
-    // Iterate though each line in the raw log
-    response.raw.split("\n").forEach(line => {
-        const end_check = line.match(/^✨  Number of stacks with differences:/);
-        if (end_check) {
-            core.debug(`Found end of diff log`);
+    let current_stack_section_name = null;
+    let current_stack_section = null;
+    raw.forEach(line => {
+        // Check if we reached the count of stacks with differences
+        if (line.match(/^✨  Number of stacks with differences: (\d+)/)) {
+            // Save the previous stack if it exists
             if (current_stack) {
                 stacks.push(current_stack);
             }
             current_stack_name = null;
             current_stack = null;
+            current_stack_section = null;
+            // TODO: Save the count of stacks with differences
+            // Return because we are done
             return;
         }
-        // Check if the line matches a Stack Regex expressions
-        const stack_check = line.match(/^Stack (\w+)/);
-        // If the line matches a stack regex expression; we are in a new stack
+        // Check if the line matches the start of a new stack
+        let stack_check = line.match(/^Stack (\w+)/);
         if (stack_check) {
             // Save the previous stack if it exists
             if (current_stack) {
@@ -26148,108 +26137,187 @@ function process_diff_log(response) {
             current_stack_name = stack_check[1];
             // Create our new stack
             current_stack = {
-                stack_name: current_stack_name,
-                raw: ''
+                name: current_stack_name,
+                raw: [],
+                sections: []
             };
-            // reset the current section
-            current_section = null;
         }
-        console.debug(`Processing Line: ${line}`);
-        if (!current_stack_name)
-            return;
-        core.debug(`Found stack: ${current_stack_name}`);
-        // If the current stack exists; add the line to the stack
-        if (current_stack) {
-            current_stack.raw += line + "\n";
-        }
-        if (!current_stack)
-            return;
-        // Check if the line matches a section regex expression
-        //const section_check = line.match(/^(IAM Statement Changes|IAM Policy Changes|Parameters|Resources|Conditions|Resources|Outputs|Other Changes)$/)
-        const section_check = line.match(/^([^Stack]([\w ]+))$/);
+        // Check if the line matches the start of a new section
+        //let section_check = line.match(/^(IAM Statement Changes|IAM Policy Changes|Parameters|Resources|Conditions|Resources|Outputs|Other Changes)$/)
+        let section_check = line.match(/^([^Stack]([\w ]+))$/);
         if (section_check) {
-            // If we have identified we are entering a new section;
-            current_section = section_check[1].toLowerCase().replace(/ /g, '_');
-            core.debug(`Found section: ${current_section}`);
-            current_stack[current_section] = {
-                name: section_check[1],
-                raw: ''
+            // Save the previous section if it exists
+            if (current_stack_section) {
+                current_stack === null || current_stack === void 0 ? void 0 : current_stack.sections.push(current_stack_section);
+            }
+            // Get the new section name
+            current_stack_section_name = section_check[1];
+            // Create our new section
+            current_stack_section = {
+                name: current_stack_section_name,
+                raw: []
             };
         }
-        if (current_stack && current_section) {
-            current_stack[current_section].raw += line + "\n";
+        // Add the line to the current stack if it exists
+        if (current_stack) {
+            current_stack.raw.push(line);
+        }
+        if (current_stack_section) {
+            current_stack_section.raw.push(line);
         }
     });
-    // Save the last stack
-    if (current_stack) {
-        stacks.push(current_stack);
-    }
-    // Add a Markdown element for each stack
-    stacks.forEach(stack => {
-        stack.markdown = '## Stack: ' + stack.stack_name + '\n\n';
-        stack.markdown += '<details>\n<summary>View Stack Diff</summary>\n\n```diff\n';
-        stack.markdown += stack.raw.trimEnd();
-        stack.markdown += '\n```\n\n</details>\n\n';
-        // Add a markdown element for each section in the stack
-        for (const key in stack) {
-            if (non_markdown_keys.includes(key))
-                continue;
-            const diff_section = stack[key];
-            diff_section.markdown = '<details';
-            // IAM sections are open by default
-            if (diff_section.name.toLowerCase().includes('iam')) {
-                diff_section.markdown += ' open';
-            }
-            diff_section.markdown += '>\n<summary>';
-            // IAM sections get police lights...
-            if (diff_section.name.toLowerCase().includes('iam')) {
-                diff_section.markdown += '🚨' + diff_section.name + '🚨';
+    return stacks;
+}
+exports.processStacks = processStacks;
+function markdown(response) {
+    var _a, _b;
+    // Generate the markdown for each stack
+    (_a = response.stacks) === null || _a === void 0 ? void 0 : _a.forEach(stack => {
+        // And each stacks section
+        stack.sections.forEach(section => {
+            // Check if the section name contains "IAM"
+            if (section.name.toUpperCase().includes("IAM")) {
+                // Add decorators and ensure its open by default
+                section.markdown = markdownUtils.generateMarkdownDetail('🚨' + section.name + '🚨', section.raw, true);
             }
             else {
-                diff_section.markdown += diff_section.name;
+                // Otherwise don't do anything special
+                section.markdown = markdownUtils.generateMarkdownDetail(section.name, section.raw);
             }
-            diff_section.markdown += '</summary>\n\n```diff\n';
-            diff_section.markdown += diff_section.raw.trimEnd();
-            diff_section.markdown += '\n```\n\n</details>';
-        }
+        });
+        // For the actual stack
+        stack.markdown = '## ' + stack.name + '\n\n';
+        stack.markdown += markdownUtils.generateMarkdownDetail('Full Stack Output', stack.raw);
+        // Append the markdown for each section in the stack
+        stack.markdown += '\n**Sections:**\n';
+        stack.sections.forEach(section => {
+            stack.markdown += section.markdown + '\n';
+        });
     });
-    // Save the stacks to the response
-    response.stacks = stacks;
-    // Add a markdown element for the diff summary
-    // Action Title
-    response.markdown = '# ';
-    // Emoji for success/failure
-    if (response.error) {
-        response.markdown += '❌ ';
-    }
-    else {
-        response.markdown += '✅ ';
-    }
-    response.markdown += 'CDK Action\n\n';
-    // What Command Was Run
-    response.markdown += '**Command:** ' + response.command + '\n\n';
-    // Full Command Output
-    response.markdown += '<details>\n';
-    response.markdown += '<summary>Full Command Output</summary>\n\n';
-    response.markdown += '```diff\n';
-    response.markdown += response.raw.trimEnd();
-    response.markdown += '\n```\n\n';
-    response.markdown += '</details>\n\n';
-    // Add a markdown element for each stack
-    stacks.forEach(stack => {
+    // Append the stacks markdown to the response markdown
+    response.markdown += '\n\n';
+    (_b = response.stacks) === null || _b === void 0 ? void 0 : _b.forEach(stack => {
         response.markdown += stack.markdown + '\n\n';
-        // Add a markdown element for each section in the stack
-        response.markdown += '**Sections:**\n';
-        for (const key in stack) {
-            if (non_markdown_keys.includes(key))
-                continue;
-            response.markdown += stack[key].markdown + '\n\n';
-        }
     });
-    // Return the response
     return response;
 }
-exports.process_diff_log = process_diff_log;
+exports.markdown = markdown;
+
+
+/***/ }),
+
+/***/ 5073:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getInputs = exports.CDK_COMMAND = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+var CDK_COMMAND;
+(function (CDK_COMMAND) {
+    CDK_COMMAND["deploy"] = "deploy";
+    CDK_COMMAND["diff"] = "diff";
+})(CDK_COMMAND || (exports.CDK_COMMAND = CDK_COMMAND = {}));
+function getInputs() {
+    const install_cdk = core.getBooleanInput('install_cdk');
+    const cdk_command = core.getInput('cdk_command', {
+        required: true,
+        trimWhitespace: true,
+    }) || 'diff';
+    const cdk_arguments = core.getMultilineInput('cdk_arguments', {
+        required: false,
+        trimWhitespace: true,
+    });
+    const command_specific_processing = core.getBooleanInput('command_specific_output');
+    // Check that cdk_command is valid
+    if (!Object.values(CDK_COMMAND).includes(cdk_command)) {
+        throw new Error(`Invalid cdk_command: ${cdk_command}`);
+    }
+    // Check that cdk_arguments don't include invalid characters.
+    // A-Za-z0-9_-
+    for (const arg of cdk_arguments) {
+        if (!/^[A-Za-z0-9_-]+$/.test(arg)) {
+            throw new Error(`Invalid cdk_arguments: ${arg}`);
+        }
+    }
+    const inputs = {
+        install_cdk: install_cdk === undefined ? true : install_cdk,
+        cdk_command: cdk_command,
+        cdk_arguments: cdk_arguments,
+        command_specific_processing: command_specific_processing === undefined ? false : command_specific_processing,
+    };
+    core.debug(`Inputs: ${JSON.stringify(inputs)}`);
+    return inputs;
+}
+exports.getInputs = getInputs;
+
+
+/***/ }),
+
+/***/ 2811:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.generateMarkdownDetail = void 0;
+function generateMarkdownDetail(title, content, opened = false) {
+    let markdown = '<details>\n';
+    markdown += '<summary>' + title + '</summary>\n\n';
+    markdown += '```dif\n';
+    markdown += content.join('\n').trimEnd().trimStart();
+    markdown += '\n```\n';
+    markdown += '\n\n</details>';
+    return markdown;
+}
+exports.generateMarkdownDetail = generateMarkdownDetail;
+
+
+/***/ }),
+
+/***/ 7201:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.jsonResponseStringArrayConcat = void 0;
+function jsonResponseStringArrayConcat(object) {
+    for (const key in object) {
+        if (object[key] instanceof Array) {
+            object[key] = object[key].join('\n');
+        }
+        else if (object[key] instanceof Object) {
+            object[key] = jsonResponseStringArrayConcat(object[key]);
+        }
+    }
+    return object;
+}
+exports.jsonResponseStringArrayConcat = jsonResponseStringArrayConcat;
 
 
 /***/ }),
@@ -28151,19 +28219,12 @@ module.exports = parseParams
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
 /******/ 	
 /************************************************************************/
-var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be in strict mode.
-(() => {
-"use strict";
-var exports = __webpack_exports__;
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const main_1 = __nccwpck_require__(399);
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-(0, main_1.run)();
-
-})();
-
-module.exports = __webpack_exports__;
+/******/ 	
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	// This entry module is referenced by other modules so it can't be inlined
+/******/ 	var __webpack_exports__ = __nccwpck_require__(6144);
+/******/ 	module.exports = __webpack_exports__;
+/******/ 	
 /******/ })()
 ;
