@@ -25,11 +25,11 @@ export async function run(): Promise<void> {
         }
 
         // Prepare the response
-        let response: CDKResponse = {
+        let response: JSONResponse = {
             command: 'cdk ' + action_inputs.cdk_command + ' ' + action_inputs.cdk_arguments.join(' '),
             error: false,
             raw: []
-        }
+        } as CDKResponse
 
         // Run the CDK command
         try {
@@ -59,26 +59,30 @@ export async function run(): Promise<void> {
         else
             response.markdown += '✅ '
         response.markdown += 'CDK Action Results\n\n'
-        response.markdown += '**Command:** ' + response.command + '\n\n'
+        response.markdown += '**Command:** `' + response.command + '`\n\n'
         response.markdown += '**Results:**\n\n'
         response.markdown += markdown.generateMarkdownDetail('Full Command Results', response.raw)
         response.markdown += '\n\n'
 
+
         // Preform command specific processing
-        if (action_inputs.command_specific_processing) {
+        if (action_inputs.command_specific_output) {
             switch(action_inputs.cdk_command) {
                 case CDK_COMMAND.diff:
-                    response = diff.process(response)
+                    core.debug("Processing Diff")
+                    response = diff.process(response as CDKResponse)
                     response = diff.markdown(response as CDKDiffResponse)
                     break
                 case CDK_COMMAND.deploy:
                     //response = processDeployResponse(response)
                     break
+                default:
+                    core.error("No Command Specific Processing")
             }
         }
 
         // Turn any string arrays into concated strings
-        response = responseUtils.jsonResponseStringArrayConcat(response) as CDKResponse
+        response = responseUtils.jsonResponseStringArrayConcat(response) as JSONResponse
 
         // map each key of response to an output and stringify the value
         Object.keys(response).forEach(key => {

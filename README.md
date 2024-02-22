@@ -145,8 +145,9 @@ jobs:
         with:
           script: |
             github.rest.issues.create({
-              owner: ${{ github.repository_owner }},
-              repo: ${{ github.repository }},
+              owner: '${{ github.repository_owner }}',
+              repo: '${{ github.repository }}'.split('/')[1],
+              title: 'CDK Deploy Failed!',
               body: ${{ steps.diff.outputs.markdown }}
             })
 

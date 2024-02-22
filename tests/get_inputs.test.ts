@@ -20,7 +20,7 @@ describe('get_inputs', () => {
       debugMock = jest.spyOn(core, 'debug').mockImplementation()
       errorMock = jest.spyOn(core, 'error').mockImplementation()
       getInputMock = jest.spyOn(core, 'getInput').mockImplementation()
-      getBooleanInputMock = jest.spyOn(core, 'getBooleanInput').mockImplementation().mockReturnValue(true)
+      getBooleanInputMock = jest.spyOn(core, 'getBooleanInput').mockImplementation()
       getMultilineInput = jest.spyOn(core, 'getMultilineInput').mockImplementation().mockReturnValue([])
       setFailedMock = jest.spyOn(core, 'setFailed').mockImplementation()
       setOutputMock = jest.spyOn(core, 'setOutput').mockImplementation()
@@ -30,10 +30,9 @@ describe('get_inputs', () => {
         const inputs = getInputs()
 
         expect(inputs.install_cdk).toBe(true)
-
     });
 
-    it('install_cdk accepts user input', () => {
+    test('install_cdk accepts user input', () => {
         // False
         getBooleanInputMock.mockReturnValue(false)
 
@@ -41,6 +40,19 @@ describe('get_inputs', () => {
 
         expect(inputs.install_cdk).toBe(false)
         expect(getBooleanInputMock).toHaveBeenCalledWith('install_cdk')        
+    });
+
+    test('command_specific_output defaults to false', () => {
+        const inputs = getInputs()
+
+        expect(inputs.command_specific_output).toBe(false)
+    })
+
+    test('command_specific_output accepts user input', () => {
+        getBooleanInputMock.mockReturnValue(true)
+        const inputs = getInputs()
+
+        expect(inputs.command_specific_output).toBe(true)
     })
 
     test('throws an error on invalid command', () => {
@@ -65,7 +77,7 @@ describe('get_inputs', () => {
         ])
         // Expects
         expect(() => { getInputs() }).toThrow('Invalid cdk_arguments: --no-color;')
-    })
+    });
 
     test('logs inputs it processed', () => {
         getInputMock.mockReturnValue('diff')
@@ -77,7 +89,7 @@ describe('get_inputs', () => {
             install_cdk: true,
             cdk_command: 'diff',
             cdk_arguments: [],
-            command_specific_processing: true
+            command_specific_output: false
         }
         expect(debugMock).toHaveBeenCalledWith(`Inputs: ${JSON.stringify(expected_debug_message)}`)
     })
@@ -91,7 +103,7 @@ describe('get_inputs', () => {
             install_cdk: true,
             cdk_command: 'diff',
             cdk_arguments: [],
-            command_specific_processing: true
+            command_specific_output: false
         })
     })
 })

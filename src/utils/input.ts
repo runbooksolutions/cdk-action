@@ -8,7 +8,7 @@ export type ActionInputs = {
     install_cdk: boolean,
     cdk_command: CDK_COMMAND,
     cdk_arguments: string[],
-    command_specific_processing: boolean,
+    command_specific_output: boolean,
 }
 
 export function getInputs(): ActionInputs {
@@ -25,7 +25,7 @@ export function getInputs(): ActionInputs {
         trimWhitespace: true,
     })
 
-    const command_specific_processing = core.getBooleanInput('command_specific_output')
+    const command_specific_output = core.getBooleanInput('command_specific_output')
 
     // Check that cdk_command is valid
     if (!Object.values(CDK_COMMAND).includes(cdk_command as CDK_COMMAND)) {
@@ -44,7 +44,7 @@ export function getInputs(): ActionInputs {
         install_cdk: install_cdk === undefined ? true : install_cdk,
         cdk_command: cdk_command as CDK_COMMAND,
         cdk_arguments:  cdk_arguments,
-        command_specific_processing: command_specific_processing === undefined ? false : command_specific_processing,
+        command_specific_output: command_specific_output === undefined ? false : command_specific_output,
     }
 
     core.debug(`Inputs: ${JSON.stringify(inputs)}`)

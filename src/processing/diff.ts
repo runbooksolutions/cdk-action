@@ -1,4 +1,4 @@
-
+import * as core from '@actions/core'
 import * as markdownUtils from '../utils/markdown'
 
 export function process(response: CDKResponse): CDKDiffResponse {
@@ -25,9 +25,14 @@ export function processStacks(raw: string[]): CDKDiffStack[] {
 
     raw.forEach(line => {
         // Check if we reached the count of stacks with differences
-        if(line.match(/^✨  Number of stacks with differences: (\d+)/)) {
+        let end_check = line.match(/^✨  Number of stacks with differences: (\d+)/)
+        if(end_check) {
             // Save the previous stack if it exists
             if (current_stack) {
+                // Save the previous section if it exists
+                if (current_stack_section) {
+                    current_stack.sections.push(current_stack_section);
+                }
                 stacks.push(current_stack);
             }
             current_stack_name = null;
@@ -43,6 +48,7 @@ export function processStacks(raw: string[]): CDKDiffStack[] {
         // Check if the line matches the start of a new stack
         let stack_check = line.match(/^Stack (\w+)/);
         if (stack_check) {
+            core.debug("Found new stack: " + stack_check[1])
             // Save the previous stack if it exists
             if (current_stack) {
                 stacks.push(current_stack);
@@ -61,6 +67,7 @@ export function processStacks(raw: string[]): CDKDiffStack[] {
         //let section_check = line.match(/^(IAM Statement Changes|IAM Policy Changes|Parameters|Resources|Conditions|Resources|Outputs|Other Changes)$/)
         let section_check = line.match(/^([^Stack]([\w ]+))$/)
         if (section_check) {
+            core.debug("Found new section: [" + current_stack?.name + "] " + section_check[1])
             // Save the previous section if it exists
             if (current_stack_section) {
                 current_stack?.sections.push(current_stack_section);
