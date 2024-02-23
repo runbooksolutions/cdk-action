@@ -1,19 +1,19 @@
 # This Workflow is used for when a push is made to the default branch
-name: Push on main
+name: Push Handeling
 
-on:
-  push:
-    branches:
-      - main
+on: push
 
 jobs:
   # Use Release-Please to detect version changes and take appropriate actions
   release-please:
     name: Release Please
     runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' }}
     permissions:
       contents: write
       pull-requests: write
+    outputs:
+        release-created: ${{ steps.release-please.outputs.release-created }}
     steps:
       - uses: actions/create-github-app-token@v1
         id: app-token
@@ -34,6 +34,7 @@ jobs:
       release-please
     permissions:
       contents: write
+    if: ${{ always() && (needs.release-please.outputs.release-created  == 'false' || needs.release-please.outputs.release-created == null) }}
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
@@ -51,5 +52,8 @@ jobs:
 
       - name: Commit Dist Folder
         run: |
-            git commit dist/**/** -m "chore(main): npm run build"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add dist/**
+            git commit dist/** -m "chore(main): npm run build"
             git push
