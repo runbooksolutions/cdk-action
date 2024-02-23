@@ -1,8 +1,10 @@
 import * as core from '@actions/core'
 
 export enum CDK_COMMAND {
-    deploy = 'deploy',
     diff = 'diff',
+    deploy = 'deploy',
+    destroy = 'destroy',
+    synthesize = 'synthesize',
 }
 export type ActionInputs = {
     install_cdk: boolean,

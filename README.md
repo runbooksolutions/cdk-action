@@ -77,6 +77,7 @@ jobs:
         uses: runbooksolutions/cdk-action@main
         with:
           install_cdk: true
+          command_specific_output: true
           cdk_command: 'diff'
           cdk_arguments:
             --app
@@ -135,6 +136,7 @@ jobs:
         uses: runbooksolutions/cdk-action@main
         with:
           install_cdk: true
+          command_specific_output: true
           cdk_command: 'deploy'
           cdk_arguments:
             --app
@@ -147,7 +149,7 @@ jobs:
             github.rest.issues.create({
               owner: '${{ github.repository_owner }}',
               repo: '${{ github.repository }}'.split('/')[1],
-              title: 'CDK Deploy Failed!',
+              title: 'CDK Deploy Failed [${{ github.ref_name }}]!',
               body: ${{ steps.diff.outputs.markdown }}
             })
 

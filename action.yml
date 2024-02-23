@@ -3,9 +3,9 @@ description: 'Runs an AWS CDK command and provides results for you to handle'
 author: 'Sniper7Kills LLC'
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.
-# branding:
-  # icon: 'heart'
-  # color: 'red'
+branding:
+  icon: 'zap'
+  color: 'green'
 
 # Define your inputs here.
 inputs:
