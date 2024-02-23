@@ -26009,8 +26009,18 @@ function run() {
                 // Setup the stdout and stderr listeners
                 const options = {
                     listeners: {
-                        stdout: (data) => { response.raw.push(data.toString()); },
-                        stderr: (data) => { response.raw.push(data.toString()); },
+                        stdout: (data) => {
+                            let lines = data.toString().split('\n');
+                            lines.forEach(line => {
+                                response.raw.push(line.trimEnd().trimStart());
+                            });
+                        },
+                        stderr: (data) => {
+                            let lines = data.toString().split('\n');
+                            lines.forEach(line => {
+                                response.raw.push(line.trimEnd().trimStart());
+                            });
+                        },
                     }
                 };
                 // Now we can actually run the cdk command
