@@ -38,8 +38,18 @@ export async function run(): Promise<void> {
             // Setup the stdout and stderr listeners
             const options = {
                 listeners: {
-                    stdout: (data: Buffer) => { response.raw.push(data.toString()) },
-                    stderr: (data: Buffer) => { response.raw.push(data.toString()) },
+                    stdout: (data: Buffer) => {
+                        let lines = data.toString().split('\n')
+                        lines.forEach(line => {
+                            response.raw.push(line.trimEnd().trimStart())
+                        });
+                    },
+                    stderr: (data: Buffer) => { 
+                        let lines = data.toString().split('\n')
+                        lines.forEach(line => {
+                            response.raw.push(line.trimEnd().trimStart())
+                        });
+                     },
                 }
             }
             // Now we can actually run the cdk command
