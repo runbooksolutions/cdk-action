@@ -26113,12 +26113,12 @@ exports.markdown = exports.processStacks = exports.process = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const markdownUtils = __importStar(__nccwpck_require__(2811));
 function process(response) {
-    core.error("DIFF - PROCESSING");
+    core.debug("DIFF - PROCESSING");
     return Object.assign(Object.assign({}, response), { stacks: processStacks(response.raw) });
 }
 exports.process = process;
 function processStacks(raw) {
-    core.error("Processing Stacks");
+    core.debug("Processing Stacks");
     const stacks = [];
     let current_stack_name = null;
     let current_stack = null;
@@ -26128,7 +26128,7 @@ function processStacks(raw) {
         // Check if we reached the count of stacks with 
         let end_check = line.match(/^(✨  Number of stacks with differences: (\d+))/);
         if (end_check) {
-            core.error("Found End of File");
+            core.debug("Found End of File");
             // Save the previous stack if it exists
             if (current_stack) {
                 // Save the previous section if it exists
@@ -26145,7 +26145,7 @@ function processStacks(raw) {
         // Check if the line matches the start of a new stack
         let stack_check = line.match(/^Stack (\w+)/);
         if (stack_check) {
-            core.error("Found new stack: " + stack_check[1]);
+            core.debug("Found new stack: " + stack_check[1]);
             // Save the previous stack if it exists
             if (current_stack) {
                 stacks.push(current_stack);
@@ -26163,7 +26163,7 @@ function processStacks(raw) {
         //let section_check = line.match(/^(IAM Statement Changes|IAM Policy Changes|Parameters|Resources|Conditions|Resources|Outputs|Other Changes)$/)
         let section_check = line.match(/^([^Stack]([\w ]+))$/);
         if (section_check) {
-            core.error("Found new section: [" + (current_stack === null || current_stack === void 0 ? void 0 : current_stack.name) + "] " + section_check[1]);
+            core.debug("Found new section: [" + (current_stack === null || current_stack === void 0 ? void 0 : current_stack.name) + "] " + section_check[1]);
             // Save the previous section if it exists
             if (current_stack_section) {
                 current_stack === null || current_stack === void 0 ? void 0 : current_stack.sections.push(current_stack_section);
@@ -26175,10 +26175,6 @@ function processStacks(raw) {
                 name: current_stack_section_name,
                 raw: []
             };
-        }
-        else {
-            core.error("No Section found in line: " + line);
-            core.debug(JSON.stringify(line.match(/^([^Stack]([\w ]+))$/)));
         }
         // Add the line to the current stack if it exists
         if (current_stack) {
