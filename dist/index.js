@@ -26052,11 +26052,8 @@ function run() {
                         response = diff.process(response);
                         response = diff.markdown(response);
                         break;
-                    case input_1.CDK_COMMAND.deploy:
-                        //response = processDeployResponse(response)
-                        break;
                     default:
-                        core.error("No Command Specific Processing");
+                        core.info("No Command Specific Processing Available for " + action_inputs.cdk_command + " command.");
                 }
             }
             // Turn any string arrays into concated strings
@@ -26207,7 +26204,7 @@ function markdown(response) {
         stack.markdown = '## ' + stack.name + '\n\n';
         stack.markdown += markdownUtils.generateMarkdownDetail('Full Stack Output', stack.raw);
         // Append the markdown for each section in the stack
-        stack.markdown += '\n**Sections:**\n';
+        stack.markdown += '\n\n**Sections:**\n\n';
         stack.sections.forEach(section => {
             stack.markdown += section.markdown + '\n';
         });
