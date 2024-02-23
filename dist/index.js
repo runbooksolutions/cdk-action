@@ -26257,8 +26257,10 @@ exports.getInputs = exports.CDK_COMMAND = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 var CDK_COMMAND;
 (function (CDK_COMMAND) {
-    CDK_COMMAND["deploy"] = "deploy";
     CDK_COMMAND["diff"] = "diff";
+    CDK_COMMAND["deploy"] = "deploy";
+    CDK_COMMAND["destroy"] = "destroy";
+    CDK_COMMAND["synthesize"] = "synthesize";
 })(CDK_COMMAND || (exports.CDK_COMMAND = CDK_COMMAND = {}));
 function getInputs() {
     const install_cdk = core.getBooleanInput('install_cdk');
