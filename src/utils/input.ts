@@ -37,7 +37,7 @@ export function getInputs(): ActionInputs {
     // Check that cdk_arguments don't include invalid characters.
     // A-Za-z0-9_-
     for (const arg of cdk_arguments) {
-        if (!/^[A-Za-z0-9_-]+$/.test(arg)) {
+        if (!/^[A-Za-z0-9_=\- ]+$/.test(arg)) {
             throw new Error(`Invalid cdk_arguments: ${arg}`)
         }
     }

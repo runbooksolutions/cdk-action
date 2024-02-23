@@ -79,6 +79,17 @@ describe('get_inputs', () => {
         expect(() => { getInputs() }).toThrow('Invalid cdk_arguments: --no-color;')
     });
 
+    test('does not throw an error on valid arguments', () => {
+        getInputMock.mockReturnValue('diff')
+        getMultilineInput.mockReturnValue([
+            '--no-color',
+            '--require-approval never',
+            '--require-approval=never'
+        ])
+
+        expect(() => { getInputs() }).not.toThrow()
+    })
+
     test('logs inputs it processed', () => {
         getInputMock.mockReturnValue('diff')
 

@@ -16,6 +16,10 @@ And steps after this actions to:
 > [!IMPORTANT]  
 > This action **WILL NOT** fail just because cdk returned non-zero.
 
+## TODO
+  Improve output parsing
+  Implement better versioning
+
 ## Inputs
 
 | Name | Required | Description | Default | Valid |
@@ -32,7 +36,7 @@ And steps after this actions to:
 | command | `true`, `false` | any | The exact command that was run | string |
 | raw | `true`, `false` | any | The exact output from the command having been run | string |
 | error | `true`, `false` | any | If the command experenced an error when running | boolean |
-| markdown | `true` | any | Process the raw output and generate markdown regarding the result. | string |
+| markdown | `true`, `false` | any | Process the raw output and generate markdown regarding the result. | string |
 | stacks | `true` | `diff` | The stacks that were referenced in the output | array |
 
 ## Example usage
