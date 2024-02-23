@@ -4,8 +4,8 @@ import * as markdownUtils from '../utils/markdown'
 export function process(response: CDKResponse): CDKDiffResponse {
     core.error("DIFF - PROCESSING")
     return {
+        ...response,
         stacks: processStacks(response.raw),
-        ...response
     } as CDKDiffResponse;
 }
 
@@ -59,7 +59,7 @@ export function processStacks(raw: string[]): CDKDiffStack[] {
 
         // Check if the line matches the start of a new section
         //let section_check = line.match(/^(IAM Statement Changes|IAM Policy Changes|Parameters|Resources|Conditions|Resources|Outputs|Other Changes)$/)
-        let section_check = line.match(/^([^Stack]([\w ]+))$/)
+        let section_check = line.match(/^([^Stack]([\w ]+))$/);
         if (section_check) {
             core.error("Found new section: [" + current_stack?.name + "] " + section_check[1])
             // Save the previous section if it exists
@@ -73,6 +73,9 @@ export function processStacks(raw: string[]): CDKDiffStack[] {
                 name: current_stack_section_name,
                 raw: []
             }
+        }else{
+            core.error("No Section found in line: " + line)
+            core.debug(JSON.stringify(line.match(/^([^Stack]([\w ]+))$/)))
         }
 
         // Add the line to the current stack if it exists
