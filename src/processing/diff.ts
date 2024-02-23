@@ -22,7 +22,7 @@ export function processStacks(raw: string[]): CDKDiffStack[] {
     raw.forEach(line => {
         // Check if we reached the count of stacks with 
         core.error("Found End of File")
-        let end_check = line.match(/^✨  Number of stacks with differences: (\d+)/)
+        let end_check = line.match(/^(✨  Number of stacks with differences: (\d+))/)
         if(end_check) {
             // Save the previous stack if it exists
             if (current_stack) {
