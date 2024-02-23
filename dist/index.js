@@ -26334,7 +26334,7 @@ function jsonResponseStringArrayConcat(object) {
             object[key] = object[key].join('\n');
         }
         else if (object[key] instanceof Object) {
-            object[key] = jsonResponseStringArrayConcat(object[key]);
+            object[key] = JSON.stringify(jsonResponseStringArrayConcat(object[key]));
         }
     }
     return object;
