@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/runbooksolutions/cdk-action/compare/v1.0.0...v1.0.1) (2024-02-23)
+
+
+### Bug Fixes
+
+* input validation ([#5](https://github.com/runbooksolutions/cdk-action/issues/5)) ([c39dcd5](https://github.com/runbooksolutions/cdk-action/commit/c39dcd5c3e1ae9e93374e3d3549cff7ae81f8019))
+
 ## 1.0.0 (2024-02-23)
 
 
