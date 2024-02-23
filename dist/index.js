@@ -26104,7 +26104,7 @@ const core = __importStar(__nccwpck_require__(2186));
 const markdownUtils = __importStar(__nccwpck_require__(2811));
 function process(response) {
     core.error("DIFF - PROCESSING");
-    return Object.assign({ stacks: processStacks(response.raw) }, response);
+    return Object.assign(Object.assign({}, response), { stacks: processStacks(response.raw) });
 }
 exports.process = process;
 function processStacks(raw) {
@@ -26165,6 +26165,10 @@ function processStacks(raw) {
                 name: current_stack_section_name,
                 raw: []
             };
+        }
+        else {
+            core.error("No Section found in line: " + line);
+            core.debug(JSON.stringify(line.match(/^([^Stack]([\w ]+))$/)));
         }
         // Add the line to the current stack if it exists
         if (current_stack) {
