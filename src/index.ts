@@ -83,11 +83,8 @@ export async function run(): Promise<void> {
                     response = diff.process(response as CDKResponse)
                     response = diff.markdown(response as CDKDiffResponse)
                     break
-                case CDK_COMMAND.deploy:
-                    //response = processDeployResponse(response)
-                    break
                 default:
-                    core.error("No Command Specific Processing")
+                    core.info("No Command Specific Processing Available for " + action_inputs.cdk_command + " command.")
             }
         }
 

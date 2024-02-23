@@ -107,7 +107,7 @@ export function markdown(response: CDKDiffResponse) {
         stack.markdown = '## ' + stack.name + '\n\n'
         stack.markdown += markdownUtils.generateMarkdownDetail('Full Stack Output', stack.raw)
         // Append the markdown for each section in the stack
-        stack.markdown += '\n**Sections:**\n'
+        stack.markdown += '\n\n**Sections:**\n\n'
         stack.sections.forEach(section => {
             stack.markdown += section.markdown + '\n'
         })
