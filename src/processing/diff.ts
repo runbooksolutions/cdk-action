@@ -2,7 +2,7 @@ import * as core from '@actions/core'
 import * as markdownUtils from '../utils/markdown'
 
 export function process(response: CDKResponse): CDKDiffResponse {
-    core.error("DIFF - PROCESSING")
+    core.debug("DIFF - PROCESSING")
     return {
         ...response,
         stacks: processStacks(response.raw),
@@ -10,7 +10,7 @@ export function process(response: CDKResponse): CDKDiffResponse {
 }
 
 export function processStacks(raw: string[]): CDKDiffStack[] {
-    core.error("Processing Stacks")
+    core.debug("Processing Stacks")
     const stacks: CDKDiffStack[] = [];
 
     let current_stack_name: string | null = null;
@@ -23,7 +23,7 @@ export function processStacks(raw: string[]): CDKDiffStack[] {
         // Check if we reached the count of stacks with 
         let end_check = line.match(/^(✨  Number of stacks with differences: (\d+))/)
         if(end_check) {
-            core.error("Found End of File")
+            core.debug("Found End of File")
             // Save the previous stack if it exists
             if (current_stack) {
                 // Save the previous section if it exists
@@ -42,7 +42,7 @@ export function processStacks(raw: string[]): CDKDiffStack[] {
         // Check if the line matches the start of a new stack
         let stack_check = line.match(/^Stack (\w+)/);
         if (stack_check) {
-            core.error("Found new stack: " + stack_check[1])
+            core.debug("Found new stack: " + stack_check[1])
             // Save the previous stack if it exists
             if (current_stack) {
                 stacks.push(current_stack);
@@ -61,7 +61,7 @@ export function processStacks(raw: string[]): CDKDiffStack[] {
         //let section_check = line.match(/^(IAM Statement Changes|IAM Policy Changes|Parameters|Resources|Conditions|Resources|Outputs|Other Changes)$/)
         let section_check = line.match(/^([^Stack]([\w ]+))$/);
         if (section_check) {
-            core.error("Found new section: [" + current_stack?.name + "] " + section_check[1])
+            core.debug("Found new section: [" + current_stack?.name + "] " + section_check[1])
             // Save the previous section if it exists
             if (current_stack_section) {
                 current_stack?.sections.push(current_stack_section);
@@ -73,10 +73,8 @@ export function processStacks(raw: string[]): CDKDiffStack[] {
                 name: current_stack_section_name,
                 raw: []
             }
-        }else{
-            core.error("No Section found in line: " + line)
-            core.debug(JSON.stringify(line.match(/^([^Stack]([\w ]+))$/)))
         }
+         
 
         // Add the line to the current stack if it exists
         if (current_stack) {
