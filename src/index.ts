@@ -41,19 +41,25 @@ export async function run(): Promise<void> {
                     stdout: (data: Buffer) => {
                         let lines = data.toString().split('\n')
                         lines.forEach(line => {
-                            response.raw.push(line.trimEnd().trimStart())
+                            response.raw.push(line.trimEnd())
                         });
                     },
                     stderr: (data: Buffer) => { 
                         let lines = data.toString().split('\n')
                         lines.forEach(line => {
-                            response.raw.push(line.trimEnd().trimStart())
+                            response.raw.push(line.trimEnd())
                         });
                      },
                 }
             }
             // Now we can actually run the cdk command
-            await exec.exec('cdk', [action_inputs.cdk_command, ...action_inputs.cdk_arguments], options)
+            let cmd_line = 'cdk ' + action_inputs.cdk_command.trim()
+            if (action_inputs.cdk_arguments.length > 0)
+                cmd_line += ' '
+            action_inputs.cdk_arguments.forEach(argument => {
+                cmd_line += argument.trim() + ' '
+            })
+            await exec.exec(cmd_line, [], options)
         } catch (error) {
             // We encountered an error, lets handle it.
             core.debug("CDK Command Failed")
