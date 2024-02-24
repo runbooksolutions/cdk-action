@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/runbooksolutions/cdk-action/compare/v1.0.1...v1.0.2) (2024-02-24)
+
+
+### Bug Fixes
+
+* update CI workflow intoduce major and minor tags ([b3e45c9](https://github.com/runbooksolutions/cdk-action/commit/b3e45c909305f1ee99bf89f62d05c8734b1d9cae))
+
 ## [1.0.1](https://github.com/runbooksolutions/cdk-action/compare/v1.0.0...v1.0.1) (2024-02-23)
 
 

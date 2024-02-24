@@ -1,6 +1,6 @@
 {
   "name": "@runbooksolutions/cdk-action",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A Github Action that will preform a CDK operation and provides JSON output with result data.",
   "main": "dist/index.js",
   "scripts": {
