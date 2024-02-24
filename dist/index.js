@@ -26012,19 +26012,25 @@ function run() {
                         stdout: (data) => {
                             let lines = data.toString().split('\n');
                             lines.forEach(line => {
-                                response.raw.push(line.trimEnd().trimStart());
+                                response.raw.push(line.trimEnd());
                             });
                         },
                         stderr: (data) => {
                             let lines = data.toString().split('\n');
                             lines.forEach(line => {
-                                response.raw.push(line.trimEnd().trimStart());
+                                response.raw.push(line.trimEnd());
                             });
                         },
                     }
                 };
                 // Now we can actually run the cdk command
-                yield exec.exec('cdk', [action_inputs.cdk_command, ...action_inputs.cdk_arguments], options);
+                let cmd_line = 'cdk ' + action_inputs.cdk_command.trim();
+                if (action_inputs.cdk_arguments.length > 0)
+                    cmd_line += ' ';
+                action_inputs.cdk_arguments.forEach(argument => {
+                    cmd_line += argument.trim() + ' ';
+                });
+                yield exec.exec(cmd_line, [], options);
             }
             catch (error) {
                 // We encountered an error, lets handle it.
