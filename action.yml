@@ -20,8 +20,6 @@ inputs:
   cdk_arguments:
     description: 'The arguments to pass to CDK'
     required: false
-    default:
-      --no-change-set
   command_specific_output:
     description: 'If the action should process the output based on the command ran'
     required: false
