@@ -1,0 +1,23 @@
+name: Release Management
+
+
+on: 
+  push:
+    branches:
+      - main
+
+jobs:
+  Release:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+    steps:
+      - name: Release Management
+        id: release
+        uses: runbooksolutions/action-release-management@v1
+        with:
+          release-type: node
+          APP_ID: ${{ secrets.BOT_ID }}
+          APP_KEY: ${{ secrets.BOT_KEY }}
+          major_tag: true
+          minor_tag: true
