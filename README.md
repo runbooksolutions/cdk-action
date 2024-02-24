@@ -1,6 +1,20 @@
 # CDK Action
 
-This action only executes the `cdk` command and provides you output in a way you can programatically take action on.
+Interact with the [AWS Cloud Development Kit](https://aws.amazon.com/cdk/) within your Github CI/CD workflow.
+
+## Overview
+
+This action allows you to preform `cdk` commands and recieve formatted output that allow you to enchance your CI/CD workflow logically.
+
+**Driving Factor:**
+The driving factor for the creation of this action was the desire to recieve output from the `cdk` command within my workflow without failing the workflow.
+While there are other actions available that may provide better markdown formatted comments; they tend to target a specific part of the CI/CD workflow and can't be used for other parts of the CI/CD workflow.
+
+I.E. This action can be used on any trigger, and you can define how the output is handled.
+
+> [!IMPORTANT]  
+> This action **WILL NOT** fail just because cdk returned non-zero.
+> To check if cdk returned non-zero check `steps.id.outputs.error == 'true'`
 
 When using this action you will need to have prior steps that:
 
@@ -13,152 +27,112 @@ And steps after this actions to:
 1) Create / Update an Issue or PR Comment
 1) Fail the job if the `error` output is true
 
-> [!IMPORTANT]  
-> This action **WILL NOT** fail just because cdk returned non-zero.
-
-## TODO
-  Improve output parsing
-  Implement better versioning
 
 ## Inputs
 
 | Name | Required | Description | Default | Valid |
 | --- | --- | --- | --- | --- |
 | `install_cdk` |  | If the action needs to install cdk or if it is already globally | `true` | `true`, `false` |
-| `cdk_command` | Required | The CDK Command to run | `diff` | `diff` |
+| `cdk_command` | ✔ | The CDK Command to run | `diff` | `diff`, `deploy`, `destroy`, `synthesize` |
 | `cdk_arguments` |  | The arguments to pass to CDK |  |  |
 | `command_specific_output` |  | If the action should process the output based on the command | `false` | `true`, `false` |
 
 ## Outputs
 
-| Name | `command_specifc_output` | `cdk_command` | Description | Type |
-| --- | --- | --- | --- | --- |
-| command | `true`, `false` | any | The exact command that was run | string |
-| raw | `true`, `false` | any | The exact output from the command having been run | string |
-| error | `true`, `false` | any | If the command experenced an error when running | boolean |
-| markdown | `true`, `false` | any | Process the raw output and generate markdown regarding the result. | string |
-| stacks | `true` | `diff` | The stacks that were referenced in the output | array |
+### Root Outputs
+
+These outputs will always be available regardless of what command is run, and regardless of `command_specific_output` value.
+
+| Name | Description |
+| --- | --- |
+| command | The exact command that was run |
+| raw | The exact output from the command having been run |
+| error | If the command experenced an error when running |
+| markdown | Process the raw output and generate markdown regarding the result. |
+
+### `command_specific_output` Outputs
+
+#### `diff` Command
+
+The following additional outputs will be made available 
+| Name | Description |
+| --- | --- |
+| stacks | The stacks that were referenced in the output |
 
 ## Example usage
 
-### Pull Request
-```yaml
-name: PR Automation
+```yml
+    # Previous steps:
+    #   - Checkout Source Code
+    #   - Setup AWS Credentials
+    #   - Installs any Repository/Package Dependencies
 
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-
-jobs:
-  cdk-diff:
-    name: "Run `cdk diff`"
-    runs-on: ubuntu-latest
-    steps:
-      # Setup AWS Credentials
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_GITHUB_ROLE }}
-          aws-region: 'us-east-1'
-
-      # Checkout Source
-      - name: Checkout Source
-        uses: actions/checkout@v4
-
-      # Setup Node (CDK)
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20.x
-
-      # Install Dependencies
-      - name: Install Dependencies
-        run: npm ci
-
-      # Use the action
-      - name: Preform a CDK Diff
-        id: cdk # ID to reference for outputs
-        uses: runbooksolutions/cdk-action@v1
-        with:
-          install_cdk: true
-          command_specific_output: true
-          cdk_command: 'diff'
-          cdk_arguments:
-            --app
-            --fail=true # Fail on difference (2nd argument example)
-
-      # Post the generated markdown to the PR
-      - name: Post PR Comment
-        uses: mshick/add-pr-comment@v2
-        with:
-          message: ${{ steps.cdk.outputs.markdown }}
-
-      # Fail the job if we got an error
-      - name: Fail the Build
-        if: ${{ steps.cdk.outputs.error || steps.cdk.outputs.error == 'true' }}
-        uses: cutenode/action-always-fail@v1.0.0
+    - id: cdk-action
+      uses: runbooksolutions/cdk-action@v1
+      with:
+        install_cdk: true
+        cdk_command: synthesize
+        cdk_arguments:
+          --json
+          # --proxy=my_proxy
+          # --proxy my_proxy
+          # --proxy
+          # my_proxy
+        command_specific_output: true
+    
+    # Process Results
+    - if: ${{ steps.cdk-action.outputs.error == 'true' }}
+      run: echo "CDK Action Failed"; exit 1;
 ```
 
-### Push to Branch
-```yaml
-name: PR Automation
+### Diff + PR Comment + Fail on error
 
-on:
-  push:
-    branches:
-      - main
+```yml
+    - name: Run CDK Diff
+      id: diff
+      uses: runbooksolutions/cdk-action@v1
+      with:
+        install_cdk: true
+        cdk_command: diff
+        command_specific_output: true
 
-jobs:
-  deploy-infrastructure:
-    name: "Run `cdk deploy`"
-    runs-on: ubuntu-latest
-    steps:
-      # Setup AWS Credentials
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_GITHUB_ROLE }}
-          aws-region: 'us-east-1'
+    - name: Post CDK Diff Comment to PR
+      uses: mshick/add-pr-comment@v2
+      with:
+        message-id: 'cdk-diff-results'
+        message: ${{ fromJson(steps.diff.outputs.markdown) }}
+    
+    - name: Fail the Workflow
+      if: ${{ steps.diff.outputs.error == 'true' }}
+      run: echo "CDK Action Failed"; exit 1;
+```
 
-      # Checkout Source
-      - name: Checkout Source
-        uses: actions/checkout@v4
+### Deploy + (Create Issue + Fail) on error
 
-      # Setup Node (CDK)
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20.x
+```yml
+    - name: CDK Deploy
+      id: deploy
+      uses: runbooksolutions/cdk-action@v1
+      with:
+        install_cdk: true
+        cdk_command: deploy
+        cdk_arguments:
+          --all
+          --require-approval never
 
-      # Install Dependencies
-      - name: Install Dependencies
-        run: npm ci
+    - name: Create Issue for Deployment Failure
+      if: ${{ steps.deploy.outputs.error == 'true' }}
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.create({
+            owner: '${{ github.repository_owner }}',
+            repo: '${{ github.repository }}'.split('/')[1],
+            title: '🚨 CDK Deploy Failed 🚨',
+            body: ${{ steps.deploy.outputs.markdown }}
+          })
 
-      # Deploy
-      - name: Preform a CDK Deploy
-        id: cdk
-        uses: runbooksolutions/cdk-action@v1
-        with:
-          install_cdk: true
-          command_specific_output: true
-          cdk_command: 'deploy'
-          cdk_arguments:
-            --app
-
-      # Open an issue if we failed
-      - uses: actions/github-script@v7
-        if: ${{ steps.cdk.outputs.error || steps.cdk.outputs.error == 'true' }}
-        with:
-          script: |
-            github.rest.issues.create({
-              owner: '${{ github.repository_owner }}',
-              repo: '${{ github.repository }}'.split('/')[1],
-              title: 'CDK Deploy Failed [${{ github.ref_name }}]!',
-              body: ${{ steps.diff.outputs.markdown }}
-            })
-
-      # Fail the job if we got an error
-      - name: Fail the Build
-        if: ${{ steps.cdk.outputs.error || steps.cdk.outputs.error == 'true' }}
-        uses: cutenode/action-always-fail@v1.0.0
+    - name: Fail the Workflow
+      if: ${{ steps.diff.outputs.error == 'true' }}
+      run: echo "CDK Action Failed"; exit 1;
 ```
