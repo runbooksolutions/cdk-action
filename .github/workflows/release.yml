@@ -9,15 +9,45 @@ on:
 jobs:
   Release:
     runs-on: ubuntu-latest
-    outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
     steps:
-      - name: Release Management
-        id: release
-        uses: runbooksolutions/action-release-management@v1
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ secrets.BOT_ID }}
+          private-key: ${{ secrets.BOT_KEY }}
+
+      - uses: google-github-actions/release-please-action@v4
+        id: release-please
         with:
           release-type: node
-          APP_ID: ${{ secrets.BOT_ID }}
-          APP_KEY: ${{ secrets.BOT_KEY }}
-          major_tag: true
-          minor_tag: true
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+      
+      - name: tag major and minor versions
+        shell: bash
+        if: ${{ steps.release-please.outputs.release_created }}
+        run: |
+          git config user.name runbooksolutions-bot[bot]
+          git config user.email 160540432+runbooksolutions-bot[bot]@users.noreply.github.com
+          git remote add gh-token "https://${{ steps.app-token.outputs.token }}@github.com/${{ github.repository}}.git"
+      
+      - name: Tag Major
+        shell: bash
+        if: ${{ steps.release-please.outputs.release_created }}
+        run: |
+          git tag -d v${{ steps.release-please.outputs.major }} || true
+          git push origin :v${{ steps.release-please.outputs.major }} || true
+          git tag -a v${{ steps.release-please.outputs.major }} -m "chore(${{ github.ref_name}}): Release v${{ steps.release-please.outputs.major }}"
+          git push origin v${{ steps.release-please.outputs.major }}
+
+      - name: Tag Minor
+        shell: bash
+        if: ${{ steps.release-please.outputs.release_created }}
+        run: |
+          git tag -d v${{ steps.release-please.outputs.major }}.${{ steps.release-please.outputs.minor }} || true
+          git push origin :v${{ steps.release-please.outputs.major }}.${{ steps.release-please.outputs.minor }} || true
+          git tag -a v${{ steps.release-please.outputs.major }}.${{ steps.release-please.outputs.minor }} -m "chore(${{ github.ref_name}}): Release v${{ steps.release-please.outputs.major }}.${{ steps.release-please.outputs.minor }}"
+          git push origin v${{ steps.release-please.outputs.major }}.${{ steps.release-please.outputs.minor }}
