@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/runbooksolutions/cdk-action/compare/v1.0.2...v1.0.3) (2024-02-24)
+
+
+### Bug Fixes
+
+* [#8](https://github.com/runbooksolutions/cdk-action/issues/8) - remove using trimStart() ([590413d](https://github.com/runbooksolutions/cdk-action/commit/590413dfcb9adcd5ffc3f077ab582fff9b3fe32a))
+
 ## [1.0.2](https://github.com/runbooksolutions/cdk-action/compare/v1.0.1...v1.0.2) (2024-02-24)
 
 
