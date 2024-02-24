@@ -78,7 +78,7 @@ jobs:
       # Use the action
       - name: Preform a CDK Diff
         id: cdk # ID to reference for outputs
-        uses: runbooksolutions/cdk-action@main
+        uses: runbooksolutions/cdk-action@v1
         with:
           install_cdk: true
           command_specific_output: true
@@ -137,7 +137,7 @@ jobs:
       # Deploy
       - name: Preform a CDK Deploy
         id: cdk
-        uses: runbooksolutions/cdk-action@main
+        uses: runbooksolutions/cdk-action@v1
         with:
           install_cdk: true
           command_specific_output: true
