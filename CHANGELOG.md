@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/runbooksolutions/cdk-action/compare/v1.0.3...v1.0.4) (2024-02-24)
+
+
+### Bug Fixes
+
+* remove defaul `cdk_argument` value from action.yml ([87363f9](https://github.com/runbooksolutions/cdk-action/commit/87363f9fb15217da425ac956e280bf2c15851832))
+
 ## [1.0.3](https://github.com/runbooksolutions/cdk-action/compare/v1.0.2...v1.0.3) (2024-02-24)
 
 
